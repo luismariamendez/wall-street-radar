@@ -2,6 +2,11 @@ name: Wall Street Radar
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+permissions:
+  contents: write
 
 jobs:
   run-radar:
@@ -24,3 +29,11 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python wall_street_radar.py
+
+      - name: Guardar historial de noticias enviadas
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add sent_links.json
+          git commit -m "Update sent news history" || echo "No changes to commit"
+          git push
