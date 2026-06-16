@@ -1,29 +1,94 @@
 import os
 import requests
+import feedparser
+from datetime import datetime
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-message = """
-🚀 Wall Street Radar
+FEEDS = {
+    "Reuters": "https://news.google.com/rss/search?q=site:reuters.com+Fed+OR+markets+OR+stocks+OR+inflation+OR+tariffs&hl=en-US&gl=US&ceid=US:en",
+    "Bloomberg": "https://news.google.com/rss/search?q=site:bloomberg.com+Fed+OR+markets+OR+stocks+OR+inflation+OR+tariffs&hl=en-US&gl=US&ceid=US:en",
+    "Wall Street Journal": "https://news.google.com/rss/search?q=site:wsj.com+Fed+OR+markets+OR+stocks+OR+inflation+OR+tariffs&hl=en-US&gl=US&ceid=US:en",
+    "Financial Times": "https://news.google.com/rss/search?q=site:ft.com+Fed+OR+markets+OR+stocks+OR+inflation+OR+tariffs&hl=en-US&gl=US&ceid=US:en",
+    "Trump / Política USA": "https://news.google.com/rss/search?q=Trump+tariffs+OR+China+OR+Fed+OR+Powell+OR+oil+OR+markets&hl=en-US&gl=US&ceid=US:en",
+}
 
-Bot iniciado correctamente.
+CATEGORIES = {
+    "🏦 Fed / Tasas": ["fed", "powell", "rate cut", "rate hike", "interest rates", "federal reserve"],
+    "📈 Inflación": ["cpi", "pce", "inflation", "prices"],
+    "💼 Empleo": ["jobs", "payrolls", "unemployment", "wages"],
+    "💵 Bonos / Dólar": ["treasury", "yield", "10-year", "dollar", "bond"],
+    "🤖 IA / Semiconductores": ["nvidia", "ai", "semiconductor", "chips", "apple", "microsoft", "google"],
+    "🏦 Bancos / Crédito": ["banks", "credit", "default", "debt", "loan"],
+    "🛢️ Energía": ["oil", "gas", "energy", "opec"],
+    "🌎 Geopolítica / Política": ["trump", "china", "tariffs", "iran", "war", "sanctions", "white house"]
+}
 
-Si recibís este mensaje significa que:
+def send_telegram(message):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    response = requests.post(
+        url,
+        data={
+            "chat_id": CHAT_ID,
+            "text": message,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": False
+        }
+    )
+    print(response.text)
 
-✅ GitHub Actions funciona
-✅ Telegram funciona
-✅ Los Secrets están configurados
-"""
+def analyze_news(title):
+    text = title.lower()
+    score = 0
+    categories = []
 
-url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    for category, keywords in CATEGORIES.items():
+        hits = sum(1 for word in keywords if word in text)
+        if hits > 0:
+            categories.append(category)
+            score += hits
 
-response = requests.post(
-    url,
-    data={
-        "chat_id": CHAT_ID,
-        "text": message
-    }
-)
+    if "trump" in text and ("tariff" in text or "china" in text or "fed" in text or "oil" in text):
+        score += 3
 
-print(response.text)
+    if score >= 5:
+        impact = "🔥 Impacto ALTO"
+    elif score >= 3:
+        impact = "⚠️ Impacto MEDIO"
+    else:
+        impact = "🟡 Impacto BAJO"
+
+    return impact, score, categories
+
+def main():
+    sent_count = 0
+
+    for source, feed_url in FEEDS.items():
+        feed = feedparser.parse(feed_url)
+
+        for entry in feed.entries[:5]:
+            title = entry.title
+            link = entry.link
+
+            impact, score, categories = analyze_news(title)
+
+            if score >= 3:
+                message = (
+                    f"<b>{impact}</b>\n"
+                    f"<b>Fuente:</b> {source}\n"
+                    f"<b>Score:</b> {score}/10\n"
+                    f"<b>Categoría:</b> {', '.join(categories)}\n\n"
+                    f"<b>{title}</b>\n\n"
+                    f"{link}\n\n"
+                    f"Hora: {datetime.now().strftime('%H:%M')}"
+                )
+
+                send_telegram(message)
+                sent_count += 1
+
+    if sent_count == 0:
+        send_telegram("✅ Wall Street Radar revisó noticias. No encontró alertas de impacto medio/alto en este momento.")
+
+if __name__ == "__main__":
+    main()
