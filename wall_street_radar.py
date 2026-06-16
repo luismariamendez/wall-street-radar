@@ -2,6 +2,7 @@ import os
 import requests
 import feedparser
 from datetime import datetime
+from deep_translator import GoogleTranslator
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -37,6 +38,12 @@ def send_telegram(message):
         }
     )
     print(response.text)
+
+def translate_to_spanish(text):
+    try:
+        return GoogleTranslator(source="auto", target="es").translate(text)
+    except Exception:
+        return text
 
 def analyze_news(title):
     text = title.lower()
@@ -74,12 +81,17 @@ def main():
             impact, score, categories = analyze_news(title)
 
             if score >= 3:
+                title_es = translate_to_spanish(title)
+
                 message = (
                     f"<b>{impact}</b>\n"
                     f"<b>Fuente:</b> {source}\n"
                     f"<b>Score:</b> {score}/10\n"
                     f"<b>Categoría:</b> {', '.join(categories)}\n\n"
-                    f"<b>{title}</b>\n\n"
+                    f"<b>📰 Titular traducido:</b>\n"
+                    f"{title_es}\n\n"
+                    f"<b>Original:</b>\n"
+                    f"{title}\n\n"
                     f"{link}\n\n"
                     f"Hora: {datetime.now().strftime('%H:%M')}"
                 )
