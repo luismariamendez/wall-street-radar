@@ -80,7 +80,8 @@ def main():
 
             impact, score, categories = analyze_news(title)
 
-            if score >= 3:
+            # SOLO NOTICIAS DE ALTO IMPACTO
+            if score >= 5:
                 title_es = translate_to_spanish(title)
 
                 message = (
@@ -100,7 +101,7 @@ def main():
                 sent_count += 1
 
     if sent_count == 0:
-        send_telegram("✅ Wall Street Radar revisó noticias. No encontró alertas de impacto medio/alto en este momento.")
+        send_telegram("✅ Wall Street Radar revisó noticias. No encontró alertas de ALTO impacto en este momento.")
 
 if __name__ == "__main__":
     main()
