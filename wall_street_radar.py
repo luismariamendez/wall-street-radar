@@ -1,26 +1,29 @@
-name: Wall Street Radar
+import os
+import requests
 
-on:
-  workflow_dispatch:
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-jobs:
-  run-radar:
-    runs-on: ubuntu-latest
+message = """
+🚀 Wall Street Radar
 
-    steps:
-      - name: Descargar repositorio
-        uses: actions/checkout@v4
+Bot iniciado correctamente.
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+Si recibís este mensaje significa que:
 
-      - name: Instalar dependencias
-        run: pip install -r requirements.txt
+✅ GitHub Actions funciona
+✅ Telegram funciona
+✅ Los Secrets están configurados
+"""
 
-      - name: Ejecutar bot
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python wall_street_radar.py
+url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+
+response = requests.post(
+    url,
+    data={
+        "chat_id": CHAT_ID,
+        "text": message
+    }
+)
+
+print(response.text)
